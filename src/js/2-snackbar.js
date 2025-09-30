@@ -1,62 +1,93 @@
-import iziToast from "izitoast";
-import "izitoast/dist/css/iziToast.min.css";
+import iziToast from 'izitoast';
+import 'izitoast/dist/css/iziToast.min.css';
 
-const form = document.querySelector(".form");
+iziToast.settings({
+  timeout: 2500,
+  resetOnHover: true,
+  transitionIn: 'flipInX',
+  transitionOut: 'flipOutX',
+  position: 'center',
+  titleSize: 25,
+  messageSize: 25,
+  backgroundColor: 'rgba(26, 255, 128, 0.8)',
+});
 
-form.addEventListener("submit", checkSubmit)
+const counterButtonEl = document.querySelector('.counter');
+const inputDelayEl = document.querySelector('.timer-input');
+const startButtonEl = document.querySelector('.button-start');
+startButtonEl.addEventListener('click', handlerButtonStart);
+inputDelayEl.value = '0';
 
-function checkSubmit(evt) {
-    evt.preventDefault();
-    const delay = evt.target.elements.delay;
-    const state = evt.target.elements.state;
-    const enteredNum = delay.value;
-    const choice = state.value;
+counterButtonEl.addEventListener('click', event => {
+  let currentDelay =
+    inputDelayEl.value === '' ? 0 : parseInt(inputDelayEl.value);
+  if (event.target.textContent === '+') {
+    currentDelay += 1;
+    inputDelayEl.value = currentDelay;
+  } else if (event.target.textContent === '-') {
+    currentDelay = currentDelay === 0 ? 0 : (currentDelay -= 1);
+    inputDelayEl.value = currentDelay;
+  }
+});
 
-    makePromise(enteredNum, choice)
-        .then(value => {
-            console.log(value);
-        })
-        .catch(error => {
-            console.log(error);
-        });
-    form.reset();
+function validateForm() {
+  const inputIsCheked = document.querySelector('input[name="state"]:checked');
+  if (parseInt(inputDelayEl.value) <= 0) {
+    iziToast.warning({
+      title: 'Error',
+      message: 'Please enter delay >0',
+      backgroundColor: 'rgba(255, 182, 66, 0.8)',
+    });
+
+    return;
+  }
+  if (!inputIsCheked) {
+    iziToast.warning({
+      title: 'Error',
+      message: 'Please checked state',
+      backgroundColor: 'rgba(255, 182, 66, 0.8)',
+    });
+    return;
+  }
+  return [inputDelayEl.value, inputIsCheked.value];
 }
 
-function makePromise(enteredNum, choice) {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            if (choice === "fulfilled") {
-                resolve(iziToast.show({
-                    ...optionsFulfilled,
-                    message: `Fulfilled promise in ${enteredNum}ms`,
-                }))
-            } else {
-                reject(iziToast.show({
-                    ...optionsRejected,
-                    message: `Rejected promise in ${enteredNum}ms`,
-                }))
-            }
-        }, enteredNum);
-    });
-};
+function handlerButtonStart(event) {
+  let delay;
+  let state;
+  event.preventDefault();
+  const isvalid = validateForm();
+  if (isvalid) {
+    [delay, state] = isvalid;
+    createPromise(parseInt(delay), state);
+  }
+}
 
-const optionsFulfilled = {
-    title: '✔',
-    titleColor: 'rgba(134, 253, 7, 1)',
-    titleSize: '24px',
-    messageColor: '#FFFFFF',
-    messageSize: '16px',
-    backgroundColor: 'rgba(89, 161, 13, 1)',
-    timeout: 4000,
-    position: 'topCenter',
-};
-const optionsRejected = {
-    title: '✖',
-    titleColor: 'rgba(255, 190, 190, 1)',
-    titleSize: '24px',
-    messageColor: '#FFFFFF',
-    messageSize: '16px',
-    backgroundColor: 'rgba(239, 64, 64, 1)',
-    timeout: 4000,
-    position: 'topCenter',
-};
+function createPromise(delay, state) {
+  const isSuccess = state;
+  const promise = new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (isSuccess === 'fulfilled') {
+        resolve(delay);
+      } else {
+        reject(delay);
+      }
+    }, delay);
+  });
+  // Registering promise callbacks
+  promise
+    .then(value => {
+      iziToast.success({
+        title: 'OK',
+        message: `Fulfilled promise in ${delay}ms`,
+        backgroundColor: 'rgba(26, 255, 128, 0.8)',
+      });
+    })
+    .catch(error => {
+      iziToast.error({
+        title: 'Error',
+        message: `Rejected promise in ${delay}ms`,
+        backgroundColor: 'rgba(213, 27, 27, 0.8)',
+      });
+    });
+}
